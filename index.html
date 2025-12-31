@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>e-Certificate MGBK SMP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+        body { font-family: 'Montserrat', sans-serif; }
+        
+        /* A4 Landscape at 96 DPI: 1123px x 794px */
+        .cert-container {
+            width: 1123px; 
+            height: 794px;
+            min-width: 1123px;
+            min-height: 794px;
+            position: relative;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 0 40px rgba(0,0,0,0.2);
+            margin: 0 auto;
+            transform-origin: top center;
+            box-sizing: border-box;
+        }
+        
+        .cert-bg {
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            width: 1123px; 
+            height: 794px;
+            z-index: 0;
+            object-fit: cover;
+        }
+
+        .cert-content {
+            position: relative;
+            z-index: 10;
+            /* Padding bawah ditingkatkan ke 140px untuk menaikkan kedudukan pengesahan secara kekal */
+            padding: 40px 60px 20px 60px; 
+            width: 100%;
+            height: 100%; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; 
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .text-blue { color: #1e40af; }
+        
+        .line-divider {
+            width: 80%;
+            border-bottom: 3px solid black;
+            margin: 10px 0;
+        }
+
+        .narrative {
+            text-align: justify;
+            width: 90%;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            /* Had ketinggian narasi diperketat agar tidak menolak bahagian pengesahan */
+            max-height: 220px; 
+            overflow: hidden;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 1200px) {
+            .preview-wrapper {
+                overflow-x: auto;
+                padding-bottom: 20px;
+            }
+            .cert-container {
+                transform: scale(0.65);
+                margin-bottom: -280px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .cert-container {
+                transform: scale(0.35);
+                margin-bottom: -500px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+<!-- ================= LANDING PAGE ================= -->
+<div id="landingPage" class="w-screen h-screen flex">
+
+    <!-- KIRI HITAM -->
+    <div class="w-1/2 bg-black flex items-center justify-center">
+        <h1 class="text-white text-7xl font-bold">Gr.</h1>
+    </div>
+
+    <!-- KANAN PUTIH -->
+    <div class="w-1/2 bg-white flex items-center justify-center">
+        <div class="w-full max-w-sm">
+
+            <h2 class="text-base font-semibold text-gray-800 mb-6">
+                Selamat datang Ibu Windah Ayu Sanu, S.Pd.
+            </h2>
+            <h2 class="text-base text-gray-800 mb-6">
+                Silahkan login untuk mengelola e-Certificate MGBK SMP. Selamat bekerja.
+            </h2>
+
+            <div class="space-y-4">
+                <input
+                    id="username"
+                    type="text"
+                    placeholder="Username"
+                    class="w-full border rounded-lg p-3"
+                />
+
+                <input
+                    id="password"
+                    type="password"
+                    placeholder="Password"
+                    class="w-full border rounded-lg p-3"
+                />
+
+                <button
+                    onclick="login()"
+                    class="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800"
+                >
+                    Masuk Aplikasi
+                </button>
+<div className="mt-8 pt-6 border-t border-slate-100 text-center text-[9px] text-slate-400">
+  <span>&copy; 2026</span>
+  <span className="ml-2">Developed by Galih MGBK SMP</span>
+</div>
+                <p id="loginError" class="text-red-600 text-sm hidden">
+                    Username atau password salah
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+    <!-- Main Application -->
+    <div id="appPage" class="hidden flex flex-col min-h-screen">
+        <header class="bg-black text-white p-4 flex justify-between items-center shadow-lg sticky top-0 z-50">
+            <h1 class="font-bold text-xl tracking-tighter">e-Certificate MGBK SMP</h1>
+            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-1 rounded transition font-bold text-sm">Logout</button>
+        </header>
+
+        <main class="flex-grow p-6 space-y-8">
+            <!-- Area Input Menu -->
+            <div class="bg-white rounded-xl shadow-md p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <div class="space-y-2 border-b md:border-b-0 pb-4">
+                    <label class="font-bold text-gray-700 block">1. Upload Template Sertifikat</label>
+                    <input type="file" id="upload-template" accept="image/*" class="text-sm w-full">
+                </div>
+
+<div class="space-y-2 border-b md:border-b-0 pb-4">
+    <label class="font-bold text-gray-700 block">2. Lengkapi Nomor Sertifikat</label>
+    <div class="grid grid-cols-2 gap-2">
+        <input type="text" id="input-no-seri" placeholder="Nomor (001)" class="border p-2 rounded text-sm w-full font-bold">
+        
+        <select id="input-kode-pertemuan" class="border p-2 rounded text-sm w-full font-bold">
+            <option value="">-- Pertemuan --</option>
+            <option value="P1">P1</option>
+            <option value="P2">P2</option>
+            <option value="P3">P3</option>
+            <option value="P4">P4</option>
+            <option value="P5">P5</option>
+            <option value="P6">P6</option>
+            <option value="P7">P7</option>
+            <option value="P8">P8</option>
+            <option value="P9">P9</option>
+            <option value="P10">P10</option>
+            <option value="P11">P11</option>
+            <option value="P12">P12</option>
+        </select>
+        
+        <select id="input-bulan" class="border p-2 rounded text-sm w-full font-bold">
+            <option value="">-- Bulan --</option>
+            <option value="I">I</option>
+            <option value="II">II</option>
+            <option value="III">III</option>
+            <option value="IV">IV</option>
+            <option value="V">V</option>
+            <option value="VI">VI</option>
+            <option value="VII">VII</option>
+            <option value="VIII">VIII</option>
+            <option value="IX">IX</option>
+            <option value="X">X</option>
+            <option value="XI">XI</option>
+            <option value="XII">XII</option>
+        </select>
+        
+        <input type="text" id="input-tahun" placeholder="Tahun (2026)" class="border p-2 rounded text-sm w-full font-bold">
+    </div>
+</div>
+
+                <div class="space-y-2 border-b md:border-b-0 pb-4">
+                    <label class="font-bold text-gray-700 block">4. Lokasi Penyelenggaraan</label>
+                    <select id="input-lokasi" class="border p-2 rounded text-sm w-full font-bold text-blue-800"></select>
+                </div>
+
+                <div class="space-y-2 border-b md:border-b-0 pb-4">
+                    <label class="font-bold text-gray-700 block">6. Hari, Tanggal</label>
+                    <input type="date" id="input-hari-tanggal" class="border p-2 rounded text-sm w-full font-bold text-blue-800">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="font-bold text-gray-700 block">7. Tema Kegiatan</label>
+                    <input type="text" id="input-tema" placeholder="Isi Tema Kegiatan" class="border p-2 rounded text-sm w-full font-bold text-blue-800">
+                </div>
+
+<div class="flex flex-col space-y-2 pt-2">
+    <button onclick="downloadAll()" class="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-bold transition shadow-sm w-full">Unduh Semua (.ZIP)</button>
+    <button onclick="downloadSingle()" class="bg-green-600 text-white py-2 rounded-md hover:bg-green-700 font-bold transition shadow-sm w-full">Unduh (.PDF)</button>
+</div>
+            </div>
+
+            <!-- Menu 3: Daftar Peserta -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="font-bold text-gray-700 block text-lg">3. Daftar Nama Peserta</label>
+                    <button onclick="resetSelection()" class="text-xs bg-red-100 text-red-600 px-3 py-2 rounded-md hover:bg-red-200 transition font-bold border border-red-200">Ulangi Seleksi Centang</button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-64 overflow-y-auto border p-4 rounded bg-gray-50 shadow-inner" id="peserta-list"></div>
+            </div>
+
+<div class="flex items-center space-x-2 bg-gray-100 p-2 rounded-md border border-gray-200">
+    <button onclick="prevPreview()" class="bg-white border border-gray-300 p-2 rounded hover:bg-gray-200 transition">◀</button>
+    <span id="preview-index" class="text-sm font-bold flex-grow text-center text-blue-700">Peserta 0/0</span>
+    <button onclick="nextPreview()" class="bg-white border border-gray-300 p-2 rounded hover:bg-gray-200 transition">▶</button>
+</div>
+</div>
+            <!-- Pratinjau Sertifikat -->
+            <div id="previewSection"
+class="preview-wrapper py-10 flex justify-center bg-gray-600 rounded-xl min-h-[850px] hidden">
+                <div id="certificate-preview" class="cert-container">
+                    <img id="bg-image-preview" src="" alt="" class="cert-bg hidden">
+                    
+                    <div class="cert-content">
+                        <!-- Header -->
+                        <div class="flex flex-col items-center w-full">
+                            <img src="https://i.postimg.cc/Q9v9Bxdq/1200px_Coat_of_arms_of_Balikpapan_svg.png" class="w-16 mb-4" alt="Logo Balikpapan">
+                            
+                            <div class="flex flex-col items-center text-center">
+                                <h2 class="text-3xl font-bold tracking-widest text-blue uppercase">S E R T I F I K A T</h2>
+                                <h3 class="text-xl font-bold mt-2">KOMUNITAS BELAJAR</h3>
+                                <h3 class="text-xl font-bold uppercase">MGBK SMP NEGERI DAN SWASTA KOTA BALIKPAPAN</h3>
+                            </div>
+
+                            <div class="mt-4 mb-4 text-center uppercase">
+                                <p class="font-bold text-lg">NOMOR : <span id="view-nomor-lengkap">.... / KOMBEL / MGBKSMP - .... / .... / ....</span></p>
+                            </div>
+
+                            <h2 id="view-nama" class="text-4xl font-bold text-blue text-center mt-2">NAMA PESERTA</h2>
+                            <h3 id="view-sekolah" class="text-xl font-bold uppercase mt-1 text-center">ASAL SATUAN PENDIDIKAN</h3>
+                            <div class="line-divider"></div>
+
+                            <!-- Narasi -->
+                            <div class="narrative uppercase" id="view-narrative-box">
+                                <div>
+                                    ATAS KEHADIRAN DAN PARTISIPASINYA SEBAGAI PESERTA DALAM 
+                                    <span id="view-pertemuan-teks" class="text-blue">....</span> 
+                                    BERBAGI PRAKTIK BAIK MELALUI KOMUNITAS BELAJAR MUSYAWARAH GURU BIMBINGAN DAN KONSELING SMP NEGERI DAN SWASTA DI 
+                                    <span id="view-lokasi" class="text-blue">....</span> 
+                                    PADA HARI <span id="view-hari" class="text-blue">....</span> 
+                                    DENGAN TEMA <span id="view-tema" class="text-blue">"...."</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pengesahan (Raised position) -->
+                        <div class="flex flex-col items-center text-center w-full">
+                            <p class="font-bold uppercase">BALIKPAPAN, <span id="view-tanggal-footer">...</span></p>
+                            <p class="font-bold uppercase leading-tight">KETUA KOMUNITAS BELAJAR</p>
+                            <p class="font-bold uppercase leading-tight">MGBK SMP</p>
+                            
+                            <div class="relative h-24 w-64 my-1 flex items-center justify-center">
+                                <img src="https://i.postimg.cc/MnWcJXnD/STEMPEL-MGBK.png" 
+                                     class="absolute left-[-95px] top-[-50px] w-48 opacity-90 z-20 pointer-events-none" alt="Stempel">
+                                <img src="https://i.postimg.cc/zH5jvqSJ/Desain_tanpa_judul.png" class="w-36 z-10" alt="Tanda Tangan">
+                            </div>
+                            
+                            <p class="font-bold text-xl">Gr. GALIH ATMAJI</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const rawPeserta = [
+            ["Guntur Galih Atmaji, S.Pd.", "SMP Negeri 15 Balikpapan"], ["Oksa Kartika De Hambri, M.Pd.", "SMP Negeri 6 Balikpapan"], ["Bayu Rohman Sagita, S.Pd.", "SMP Negeri 7 Balikpapan"], ["Windah Ayu Sanu, S.Pd.", "SMP Negeri 4 Balikpapan"], ["Nurul Badriyah, S.Psi.", "SMP Negeri 1 Balikpapan"], ["Siti Hatirah, S.Pd.", "SMP Negeri 9 Balikpapan"], ["Elshinta Tresye Ketty Sambenthiro, S.Pd.", "SMP Negeri 1 Balikpapan"], ["Dina Haneefa, S.Pd.", "SMP Negeri 1 Balikpapan"], ["Marhani, S.Pd., Gr.", "SMP Negeri 1 Balikpapan"], ["Sri Bayinah, S.Pd.", "SMP Negeri 2 Balikpapan"], ["Eka Ratna Sari Ningsih, S.Pd.", "SMP Negeri 2 Balikpapan"], ["Netti Herawati Siregar, S.Pd.", "SMP Negeri 3 Balikpapan"], ["Zahrotul Latifah Nor, S.Psi.", "SMP Negeri 3 Balikpapan"], ["Eka Marida Astriani Samosir, S.Pd.", "SMP Negeri 3 Balikpapan"], ["Anggun Diah Ayu Nisa, S.Pd.", "SMP Negeri 3 Balikpapan"], ["Sugiarto, S.Pd.", "SMP Negeri 3 Balikpapan"], ["Hanik Mukaromah, S.Psi.", "SMP Negeri 4 Balikpapan"], ["Sugianto, S.Pd.", "SMP Negeri 4 Balikpapan"], ["Yuli Anggraini, S.Pd.", "SMP Negeri 4 Balikpapan"], ["Rafidah Aliakumala, S.Pd.", "SMP Negeri 4 Balikpapan"], ["Dwi Suci Merdekawati, S.Pd.", "SMP Negeri 5 Balikpapan"], ["Aniatuz Zakiya, S.Pd.", "SMP Negeri 5 Balikpapan"], ["Nurhasanah, S.Psi.", "SMP Negeri 5 Balikpapan"], ["Evi Nurhayati, S.Pd.", "SMP Negeri 6 Balikpapan"], ["Wirian Martaweni, S.Pd.", "SMP Negeri 6 Balikpapan"], ["Maria Ulfa, S.Psi.", "SMP Negeri 6 Balikpapan"], ["Kholifatul Dwinur Kholisah, S.Pd.", "SMP Negeri 6 Balikpapan"], ["Nur Khamidah, S.Pd.", "SMP Negeri 7 Balikpapan"], ["Widyawati, S.Pd.", "SMP Negeri 7 Balikpapan"], ["Nisva Purnama, S.Pd.", "SMP Negeri 7 Balikpapan"], ["Rachmah Aulia, S.Pd.", "SMP Negeri 8 Balikpapan"], ["Dwi Atika Anastiani, S.Pd.", "SMP Negeri 8 Balikpapan"], ["Mariani Ulfah, S.Pd.", "SMP Negeri 8 Balikpapan"], ["Ike Nurdliadhi Illyas, S.Pd.", "SMP Negeri 8 Balikpapan"], ["Fitriani, S.Pd.", "SMP Negeri 9 Balikpapan"], ["Atika Rahmawati, S.Pd.", "SMP Negeri 9 Balikpapan"], ["Retnaningsih, S.Pd.", "SMP Negeri 10 Balikpapan"], ["Solekah, S.Pd.", "SMP Negeri 10 Balikpapan"], ["Widia Sartika, S.Pd.", "SMP Negeri 10 Balikpapan"], ["Debby Maulidia, S.Pd.", "SMP Negeri 10 Balikpapan"], ["Vera Wilandita, S.Pd.", "SMP Negeri 10 Balikpapan"], ["Wahyu Dwi Utami, S.Pd.", "SMP Negeri 11 Balikpapan"], ["Ika Hayun Yuniawati, S.Pd.", "SMP Negeri 11 Balikpapan"], ["Sumarsih, S.Pd.", "SMP Negeri 11 Balikpapan"], ["Febrianti, S.Pd.", "SMP Negeri 11 Balikpapan"], ["Haris Prihatmoko, S.Pd.", "SMP Negeri 11 Balikpapan"], ["Siswatin, S.Pd.", "SMP Negeri 12 Balikpapan"], ["Fauziah Hanum, S.Psi.", "SMP Negeri 12 Balikpapan"], ["Silfia Andayani, S.Psi.", "SMP Negeri 12 Balikpapan"], ["Yoeri Ahdiani, S.Pd.", "SMP Negeri 12 Balikpapan"], ["Gita Rosalia Agustina, S.Pd.", "SMP Negeri 12 Balikpapan"], ["Didin Yuli Rubijantari, S.Psi.", "SMP Negeri 13 Balikpapan"], ["Wadi Reina Anggraini, S.Psi.", "SMP Negeri 13 Balikpapan"], ["Siti Mareta Sari, S.Pd.", "SMP Negeri 13 Balikpapan"], ["Rizka Dian Puspita, S.Pd.", "SMP Negeri 13 Balikpapan"], ["Dra. Dahliati", "SMP Negeri 14 Balikpapan"], ["Rakhma Mulia Warsita, S.Psi.", "SMP Negeri 14 Balikpapan"], ["Hasmawati, S.Pd.", "SMP Negeri 14 Balikpapan"], ["Zurdana Ananta Alip, S.Pd.", "SMP Negeri 14 Balikpapan"], ["Sukardi, S.Pd.", "SMP Negeri 15 Balikpapan"], ["Wiwik Irawati, S.Psi.", "SMP Negeri 15 Balikpapan"], ["Diah Ramdani Nurhikmah, S.Pd.", "SMP Negeri 15 Balikpapan"], ["Renita Meisa Simbolon, S.Pd.", "SMP Negeri 16 Balikpapan"], ["Hendri Prastiyo, S.Pd.", "SMP Negeri 17 Balikpapan"], ["Nurkholifah, S.Pd.", "SMP Negeri 17 Balikpapan"], ["Asri Octaviana Dwi Rahayu, S.Pd.", "SMP Negeri 18 Balikpapan"], ["Ika Isti Mastutik, S.Pd.", "SMP Negeri 18 Balikpapan"], ["Muna Dhiya Shofiyah, S.Pd.", "SMP Negeri 18 Balikpapan"], ["Dina Triatminingsih, S.P.", "SMP Negeri 19 Balikpapan"], ["Lilik Inung Prawitasari, S.Pd.", "SMP Negeri 19 Balikpapan"], ["Ade Irma, S.Pd.", "SMP Negeri 19 Balikpapan"], ["Jumiati Amelia, S.Pd.", "SMP Negeri 20 Balikpapan"], ["Idawati, S.Pd.", "SMP Negeri 20 Balikpapan"], ["David Fajar Budianto, S.Pd.", "SMP Negeri 21 Balikpapan"], ["Indri Triana Anggraini, S.Pd.", "SMP Negeri 22 Balikpapan"], ["Rina Rahmawati Fuad, S.Pd.", "SMP Negeri 22 Balikpapan"], ["Gita Diniati Hasim, S.Psi.", "SMP Negeri 22 Balikpapan"], ["Kuswanti, S.Pd.", "SMP Negeri 23 Balikpapan"], ["Dina Kurniawati, S.Pd.", "SMP Negeri 23 Balikpapan"], ["Ratu Mega Pertiwi, S.Pd.", "SMP Negeri 23 Balikpapan"], ["Karyawati Basri, S.Pd.", "SMP Negeri 24 Balikpapan"], ["Afnan Arifin, S.Pd.", "SMP Negeri 25 Balikpapan"], ["Ramadhona Fitri, S.Psi.", "SMP Negeri 26 Balikpapan"], ["Enny Hartini, S.Psi.", "SMP Patra Dharma 1 Balikpapan"], ["Nurlina Syam, S.Pd.", "SMP Patra Dharma 2 Balikpapan"], ["Desy Dwi Familia, S.Psi., MM.", "SMP Nasional KPS Balikpapan"], ["Benedectus Ardhyanto Wicaksana Putra, S.Pd.", "SMP Katholik Santo Mikail Balikpapan"], ["Feni Yuranoa, M.Psi.", "SMPS Integral Luqman Al Hakim Balikpapan"], ["Ifana Safitri, S.Pd.", "SMPS Integral Luqman Al Hakim Balikpapan"], ["Ritayanti, S.Pd", "SMP Kartika V-1 Balikpapan"], ["Vivi Nur Afifah, S.Pd.", "SMPIT Istiqamah YPAIT Balikpapan"], ["Farah Ulfah, S.Psi.", "SMPIT Istiqamah YPAIT Balikpapan"], ["Mar'atus Sholihah, S.Pd.", "SMP PGRI 4 Balikpapan"], ["Musnindar H.M.", "SMP PGRI 7 Balikpapan"], ["Arita Rahmadhani, S.Psi.", "SMP IT Modern Balikpapan Islamic School"], ["Soreni Mastiti Suhari Putri, S.Psi.", "SMP Muhammadiyah 2 Balikpapan"], ["Nur Hidayah, M.Pd.", "SMP Al-Hasan Balikpapan"], ["Rizka Damayanti, S.Pd.", "SMP Islam Istiqomah Balikpapan"], ["Andriana Dhea A., S.Pd.", "SMP Islam Istiqomah Balikpapan"], ["Siti Indah Suryani, S.Sos.", "SMP Ibnu Hajar Comprehensive Balikpapan"], ["Iffah Faisya, S.Psi.", "SMP IT Tri Sukses Generus Balikpapan"], ["Eka Wuri Handayani, S.Pd.", "SMP Alam Balikpapan"], ["Elia Lilis Suryanti, S.Psi.", "SMP Muhammadiyah 3 Al Muhajidin"], ["Ida Ayu Endah Antika Maharani, S.Pd.", "SMP PGRI 2 Balikpapan"], ["Nadia Zhulfa Rahman, S.Pd.", "SMPIT Al-Auliya Balikpapan"]
+        ];
+
+        const locations = ["SMP Negeri 1 Balikpapan", "SMP Negeri 2 Balikpapan", "SMP Negeri 3 Balikpapan", "SMP Negeri 4 Balikpapan", "SMP Negeri 5 Balikpapan", "SMP Negeri 6 Balikpapan", "SMP Negeri 7 Balikpapan", "SMP Negeri 8 Balikpapan", "SMP Negeri 9 Balikpapan", "SMP Negeri 10 Balikpapan", "SMP Negeri 11 Balikpapan", "SMP Negeri 12 Balikpapan", "SMP Negeri 13 Balikpapan", "SMP Negeri 14 Balikpapan", "SMP Negeri 15 Balikpapan", "SMP Negeri 16 Balikpapan", "SMP Negeri 17 Balikpapan", "SMP Negeri 18 Balikpapan", "SMP Negeri 19 Balikpapan", "SMP Negeri 20 Balikpapan", "SMP Negeri 21 Balikpapan", "SMP Negeri 22 Balikpapan", "SMP Negeri 23 Balikpapan", "SMP Negeri 24 Balikpapan", "SMP Negeri 25 Balikpapan", "SMP Patra Dharma 1 Balikpapan", "SMP Patra Dharma 2 Balikpapan", "SMP Nasional KPS Balikpapan", "SMP Katholik Santo Mikail Balikpapan", "SMPS Integral Luqman Al Hakim Balikpapan", "SMP Kartika V-1 Balikpapan", "SMPIT Istiqamah YPAIT Balikpapan", "SMP PGRI 2 Balikpapan", "SMP PGRI 4 Balikpapan", "SMP PGRI 7 Balikpapan", "SMP IT Modern Balikpapan Islamic School", "SMP Muhammadiyah 2 Balikpapan", "SMP Al-Hasan Balikpapan", "SMP Muhammadiyah 3 Al Mujahidin", "SMPIT Al-Auliya Balikpapan", "SMP Ibnu Hajar Comprehensive Balikpapan", "SMP Alam Balikpapan", "SMP Islam Istiqomah Balikpapan", "SMP Syaichona Cholil Balikpapan", "SMP IT Tri Sukses Generus Balikpapan", "SMP IT Al-Imam Balikpapan", "SMP IT Al-Azhar Boarding School", "SMP Insan Kamil", "SMP Kristen IPEKA Balikpapan", "SMP Bina Bersama Balikpapan", "SMPIT Mutiara Rahmah Balikpapan", "Al Imam Islamic School Balikpapan"];
+
+        let appState = {
+            selectedPeserta: [],
+            currentPreviewIndex: 0,
+            templateUrl: null,
+            noSeri: "", kode: "", bulan: "", tahun: "", lokasi: "", hari: "", tema: ""
+        };
+
+        const view = {
+            nomorLengkap: document.getElementById('view-nomor-lengkap'),
+            nama: document.getElementById('view-nama'),
+            sekolah: document.getElementById('view-sekolah'),
+            pertemuanTeks: document.getElementById('view-pertemuan-teks'),
+            lokasi: document.getElementById('view-lokasi'),
+            hari: document.getElementById('view-hari'),
+            tema: document.getElementById('view-tema'),
+            tanggalFooter: document.getElementById('view-tanggal-footer'),
+            previewInfo: document.getElementById('preview-index'),
+            narrativeBox: document.getElementById('view-narrative-box')
+        };
+
+        window.onload = () => {
+            const list = document.getElementById('peserta-list');
+            rawPeserta.forEach((p, index) => {
+                const label = document.createElement('label');
+                label.className = "flex items-center space-x-2 text-sm cursor-pointer hover:bg-gray-200 p-2 rounded transition";
+                label.innerHTML = `<input type="checkbox" class="peserta-check w-4 h-4" data-index="${index}"> <span>${p[0]}</span>`;
+                list.appendChild(label);
+            });
+
+            const locSelect = document.getElementById('input-lokasi');
+            const defOpt = document.createElement('option');
+            defOpt.value = ""; defOpt.textContent = "-- Pilih Lokasi --";
+            locSelect.appendChild(defOpt);
+            locations.forEach(loc => {
+                const opt = document.createElement('option');
+                opt.value = loc;
+                opt.textContent = loc;
+                locSelect.appendChild(opt);
+            });
+
+            setupListeners();
+            updatePreview();
+        };
+
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAtQdPEND9q9CJntP0lRpgKhB2lGPgdY1r4_GWsWGn1tuswqCB_VDrFlv3VzBaSx_q/exec";
+
+async function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    const error = document.getElementById('loginError'); // Sesuaikan dengan ID di HTML [cite: 38]
+    const loginBtn = document.querySelector('button[onclick="login()"]');
+    
+    // Elemen Halaman
+    const landing = document.getElementById('landingPage');
+    const app = document.getElementById('appPage'); // Pastikan ID ini ada di HTML
+
+    loginBtn.innerText = "Mengecek...";
+    loginBtn.disabled = true;
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ username: user, password: pass }),
+            redirect: 'follow'
+        });
+
+        const data = await response.json();
+        if (data.result === 'success') {
+            landing.classList.add('hidden');
+            app.classList.remove('hidden');
+            error.classList.add('hidden');
+            document.getElementById('previewSection')
+                .classList.remove('hidden');
+            renderLocationOptions();
+            updatePreview();
+          
+        } else {
+            error.innerText = "Username atau password salah";
+            error.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        error.innerText = "Koneksi gagal. Gunakan login admin/mgbk2025 untuk testing.";
+        error.classList.remove('hidden');
+    } finally {
+        loginBtn.innerText = "Masuk Aplikasi";
+        loginBtn.disabled = false;
+    }
+}
+
+function logout() {
+    // Sembunyikan halaman aplikasi utama
+    const app = document.getElementById('appPage');
+    const landing = document.getElementById('landingPage');
+    
+    if (app && landing) {
+        app.classList.add('hidden');
+        landing.classList.remove('hidden');
+        
+        // Reset form login agar kosong kembali
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        
+        // Sembunyikan pesan error jika ada
+        const error = document.getElementById('loginError');
+        if (error) error.classList.add('hidden');
+    }
+}
+
+        function resetSelection() {
+            document.querySelectorAll('.peserta-check').forEach(cb => cb.checked = false);
+            appState.selectedPeserta = [];
+            appState.currentPreviewIndex = 0;
+            updatePreview();
+        }
+
+        function setupListeners() {
+            document.getElementById('upload-template').onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (f) => {
+                        appState.templateUrl = f.target.result;
+                        const bg = document.getElementById('bg-image-preview');
+                        bg.src = f.target.result;
+                        bg.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const fieldIds = ['noSeri', 'kode', 'bulan', 'tahun', 'lokasi', 'hari', 'tema'];
+            fieldIds.forEach(id => {
+                const el = document.getElementById('input-' + (id === 'noSeri' ? 'no-seri' : id === 'kode' ? 'kode-pertemuan' : id === 'hari' ? 'hari-tanggal' : id));
+                const evType = el.tagName === 'SELECT' ? 'change' : 'input';
+                el.addEventListener(evType, (e) => {
+                    appState[id] = e.target.value;
+                    updatePreview();
+                });
+            });
+
+            document.addEventListener('change', (e) => {
+                if(e.target.classList.contains('peserta-check')) {
+                    const idx = parseInt(e.target.dataset.index);
+                    if (e.target.checked) {
+                        appState.selectedPeserta.push({ index: idx, nama: rawPeserta[idx][0], sekolah: rawPeserta[idx][1] });
+                    } else {
+                        appState.selectedPeserta = appState.selectedPeserta.filter(p => p.index !== idx);
+                    }
+                    appState.currentPreviewIndex = 0;
+                    updatePreview();
+                }
+            });
+        }
+
+        function getPertemuanTeks(kode) {
+            if (!kode || kode.trim() === "") return "....";
+            const map = { 
+                'P1': 'PERTAMA', 'P2': 'KEDUA', 'P3': 'KETIGA', 'P4': 'KEEMPAT', 'P5': 'KELIMA',
+                'P6': 'KEENAM', 'P7': 'KETUJUH', 'P8': 'KEDELAPAN', 'P9': 'KESEMBILAN', 'P10': 'KESEPULUH',
+                'PI': 'PERTAMA', 'PII': 'KEDUA', 'PIIII': 'KETIGA'
+            };
+            return map[kode.toUpperCase()] || kode.toUpperCase();
+        }
+
+        function formatIndonesianDate(dateStr, includeDay = true) {
+            if (!dateStr) return "....";
+            const date = new Date(dateStr);
+            if (isNaN(date)) return "....";
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            if (includeDay) options.weekday = 'long';
+            return date.toLocaleDateString('id-ID', options).toUpperCase();
+        }
+
+function formatNameWithDegrees(fullName) {
+    if (!fullName || fullName === "NAMA PESERTA") return fullName;
+    
+    // Mencari posisi koma pertama sebagai pemisah nama dan gelar
+    const indexKoma = fullName.indexOf(',');
+    
+    if (indexKoma !== -1) {
+        // Nama sebelum koma diubah jadi KAPITAL
+        const namePart = fullName.substring(0, indexKoma).toUpperCase();
+        // Gelar setelah koma diambil sesuai tulisan aslinya
+        const degreePart = fullName.substring(indexKoma);
+        
+        return namePart + degreePart;
+    }
+    
+    // Jika tidak ada koma, buat semua jadi kapital
+    return fullName.toUpperCase();
+}
+
+        function updatePreview() {
+            const hasSelection = appState.selectedPeserta.length > 0;
+            const currentPeserta = hasSelection ? appState.selectedPeserta[appState.currentPreviewIndex] : { nama: "NAMA PESERTA", sekolah: "ASAL SATUAN PENDIDIKAN" };
+
+            let base = parseInt(appState.noSeri);
+            let seri = (!isNaN(base)) ? (base + appState.currentPreviewIndex).toString().padStart(3, '0') : "....";
+            let kd = (appState.kode.trim() !== "") ? appState.kode.toUpperCase() : "....";
+            let bln = (appState.bulan.trim() !== "") ? appState.bulan.toUpperCase() : "....";
+            let thn = (appState.tahun.trim() !== "") ? appState.tahun : "....";
+            view.nomorLengkap.innerText = `${seri} / KOMBEL / MGBKSMP - ${kd} / ${bln} / ${thn}`;
+            
+            view.nama.innerText = formatNameWithDegrees(currentPeserta.nama);
+            view.sekolah.innerText = currentPeserta.sekolah.toUpperCase();
+            
+            view.pertemuanTeks.innerText = `PERTEMUAN ${getPertemuanTeks(appState.kode)}`;
+            view.lokasi.innerText = (appState.lokasi.trim() !== "") ? appState.lokasi.toUpperCase() : "....";
+            view.hari.innerText = formatIndonesianDate(appState.hari, true);
+            view.tema.innerText = (appState.tema.trim() !== "") ? `"${appState.tema.toUpperCase()}"` : "....";
+            
+            view.tanggalFooter.innerText = formatIndonesianDate(appState.hari, false);
+
+            const fullText = view.narrativeBox.innerText;
+            if (fullText.length > 300) {
+                view.narrativeBox.style.fontSize = "16px";
+                view.narrativeBox.style.lineHeight = "1.8";
+            } else if (fullText.length > 200) {
+                view.narrativeBox.style.fontSize = "18px";
+                view.narrativeBox.style.lineHeight = "2.0";
+            } else {
+                view.narrativeBox.style.fontSize = "20px";
+                view.narrativeBox.style.lineHeight = "2.2";
+            }
+
+            view.previewInfo.innerText = `Peserta ${hasSelection ? appState.currentPreviewIndex + 1 : 0}/${appState.selectedPeserta.length}`;
+        }
+
+        function prevPreview() {
+            if (appState.currentPreviewIndex > 0) { appState.currentPreviewIndex--; updatePreview(); }
+        }
+
+        function nextPreview() {
+            if (appState.currentPreviewIndex < appState.selectedPeserta.length - 1) { appState.currentPreviewIndex++; updatePreview(); }
+        }
+
+        async function downloadSingle() {
+            if (appState.selectedPeserta.length === 0) { alert("Pilih minimal satu peserta!"); return; }
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "Processing..."; btn.disabled = true;
+            const element = document.getElementById('certificate-preview');
+            const current = appState.selectedPeserta[appState.currentPreviewIndex];
+
+            try {
+                const canvas = await html2canvas(element, { 
+                    width: 1123, height: 794, scale: 3, useCORS: true, backgroundColor: "#FFFFFF",
+                    onclone: (cloned) => {
+                        const el = cloned.getElementById('certificate-preview');
+                        el.style.transform = 'none'; el.style.margin = '0'; el.style.boxShadow = 'none';
+                    }
+                });
+                const img = canvas.toDataURL('image/png');
+                const pdf = new jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1123, 794] });
+                pdf.addImage(img, 'PNG', 0, 0, 1123, 794);
+                pdf.save(`e-Certificate_${current.nama}_${appState.tahun || '2026'}.pdf`.replace(/\//g, '-'));
+            } catch (err) { alert("Gagal mengunduh."); }
+            btn.innerText = originalText; btn.disabled = false;
+        }
+
+        async function downloadAll() {
+            if (appState.selectedPeserta.length === 0) { alert("Pilih minimal satu peserta!"); return; }
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = "ZIP diproses..."; btn.disabled = true;
+            const zip = new JSZip();
+            const element = document.getElementById('certificate-preview');
+
+            for (let i = 0; i < appState.selectedPeserta.length; i++) {
+                const oldIdx = appState.currentPreviewIndex;
+                appState.currentPreviewIndex = i;
+                updatePreview();
+                await new Promise(r => setTimeout(r, 500));
+
+                const canvas = await html2canvas(element, { 
+                    width: 1123, height: 794, scale: 3, useCORS: true, backgroundColor: "#FFFFFF",
+                    onclone: (cloned) => {
+                        const el = cloned.getElementById('certificate-preview');
+                        el.style.transform = 'none'; el.style.margin = '0'; el.style.boxShadow = 'none';
+                    }
+                });
+                const img = canvas.toDataURL('image/png');
+                const pdf = new jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1123, 794] });
+                pdf.addImage(img, 'PNG', 0, 0, 1123, 794);
+                
+                const person = appState.selectedPeserta[i];
+                zip.file(`e-Certificate_MGBK_${person.sekolah}_${person.nama}.pdf`.replace(/\//g, '-'), pdf.output('blob'));
+                appState.currentPreviewIndex = oldIdx;
+                updatePreview();
+            }
+
+            const content = await zip.generateAsync({type:"blob"});
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `e-Certificate_MGBK_${appState.tahun || '2026'}.zip`;
+            link.click();
+            btn.innerText = originalText; btn.disabled = false;
+        }
+    </script>
+</body>
+</html>
