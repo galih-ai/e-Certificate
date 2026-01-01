@@ -388,7 +388,7 @@ async function login() {
         }
     } catch (err) {
         console.error("Fetch Error:", err);
-        error.innerText = "Koneksi gagal. Gunakan login admin/mgbk2025 untuk testing.";
+        error.innerText = "Koneksi gagal. Hubungi admin Gr.";
         error.classList.remove('hidden');
     } finally {
         loginBtn.innerText = "Masuk Aplikasi";
@@ -397,22 +397,43 @@ async function login() {
 }
 
 function logout() {
-    // Sembunyikan halaman aplikasi utama
     const app = document.getElementById('appPage');
     const landing = document.getElementById('landingPage');
-    
-    if (app && landing) {
-        app.classList.add('hidden');
-        landing.classList.remove('hidden');
-        
-        // Reset form login agar kosong kembali
-        document.getElementById('username').value = '';
-        document.getElementById('password').value = '';
-        
-        // Sembunyikan pesan error jika ada
-        const error = document.getElementById('loginError');
-        if (error) error.classList.add('hidden');
-    }
+    const preview = document.getElementById('previewSection');
+
+    // Sembunyikan halaman aplikasi & preview
+    app.classList.add('hidden');
+    preview.classList.add('hidden');
+    landing.classList.remove('hidden');
+
+    // Reset login form
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('loginError').classList.add('hidden');
+
+    // Reset state aplikasi
+    appState = {
+        selectedPeserta: [],
+        currentPreviewIndex: 0,
+        templateUrl: null,
+        noSeri: "",
+        kode: "",
+        bulan: "",
+        tahun: "",
+        lokasi: "",
+        hari: "",
+        tema: ""
+    };
+
+    // Reset checkbox peserta
+    document.querySelectorAll('.peserta-check').forEach(cb => cb.checked = false);
+
+    // Reset background sertifikat
+    const bg = document.getElementById('bg-image-preview');
+    bg.src = "";
+    bg.classList.add('hidden');
+
+    updatePreview();
 }
 
         function resetSelection() {
@@ -466,7 +487,7 @@ function logout() {
             const map = { 
                 'P1': 'PERTAMA', 'P2': 'KEDUA', 'P3': 'KETIGA', 'P4': 'KEEMPAT', 'P5': 'KELIMA',
                 'P6': 'KEENAM', 'P7': 'KETUJUH', 'P8': 'KEDELAPAN', 'P9': 'KESEMBILAN', 'P10': 'KESEPULUH',
-                'PI': 'PERTAMA', 'PII': 'KEDUA', 'PIIII': 'KETIGA'
+                'P11': 'KESEBELAS', 'P12': 'KEDUABELAS'
             };
             return map[kode.toUpperCase()] || kode.toUpperCase();
         }
