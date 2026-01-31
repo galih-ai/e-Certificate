@@ -404,14 +404,21 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAtQdPEND9q9CJntP0l
 async function login() {
     const user = document.getElementById('username').value;
     const pass = document.getElementById('password').value;
-    const error = document.getElementById('loginError'); // Sesuaikan dengan ID di HTML [cite: 38]
+    const error = document.getElementById('loginError'); 
     const loginBtn = document.querySelector('button[onclick="login()"]');
     
+    // Elemen Loader
+    const loader = document.getElementById('global-loader');
+    const loaderText = document.getElementById('loader-text');
+
+    // 1. TAMPILKAN LOADER LOGIN
+    loaderText.innerText = "Adakah..."; // Sesuai permintaan
+    loader.classList.remove('hidden');
+
     // Elemen Halaman
     const landing = document.getElementById('landingPage');
-    const app = document.getElementById('appPage'); // Pastikan ID ini ada di HTML
+    const app = document.getElementById('appPage');
 
-    loginBtn.innerText = "Mengecek...";
     loginBtn.disabled = true;
 
     try {
@@ -421,17 +428,15 @@ async function login() {
             body: JSON.stringify({ username: user, password: pass }),
             redirect: 'follow'
         });
-
         const data = await response.json();
+        
         if (data.result === 'success') {
             landing.classList.add('hidden');
             app.classList.remove('hidden');
             error.classList.add('hidden');
-            document.getElementById('previewSection')
-                .classList.remove('hidden');
+            document.getElementById('previewSection').classList.remove('hidden');
             renderLocationOptions();
             updatePreview();
-          
         } else {
             error.innerText = "Username atau password salah";
             error.classList.remove('hidden');
@@ -441,49 +446,60 @@ async function login() {
         error.innerText = "Koneksi gagal. Hubungi admin Gr.";
         error.classList.remove('hidden');
     } finally {
+        // 2. SEMBUNYIKAN LOADER SETELAH SELESAI
+        loader.classList.add('hidden');
         loginBtn.innerText = "Masuk Aplikasi";
         loginBtn.disabled = false;
     }
 }
 
 function logout() {
-    const app = document.getElementById('appPage');
-    const landing = document.getElementById('landingPage');
-    const preview = document.getElementById('previewSection');
+    // Elemen Loader
+    const loader = document.getElementById('global-loader');
+    const loaderText = document.getElementById('loader-text');
 
-    // Sembunyikan halaman aplikasi & preview
-    app.classList.add('hidden');
-    preview.classList.add('hidden');
-    landing.classList.remove('hidden');
+    // 1. TAMPILKAN LOADER LOGOUT
+    loaderText.innerText = "Terima kasih bu Windah ..."; // Sesuai permintaan
+    loader.classList.remove('hidden');
 
-    // Reset login form
-    document.getElementById('username').value = '';
-    document.getElementById('password').value = '';
-    document.getElementById('loginError').classList.add('hidden');
+    // 2. BERI JEDA WAKTU (2.5 Detik) AGAR TEKS TERBACA
+    setTimeout(() => {
+        const app = document.getElementById('appPage');
+        const landing = document.getElementById('landingPage');
+        const preview = document.getElementById('previewSection');
 
-    // Reset state aplikasi
-    appState = {
-        selectedPeserta: [],
-        currentPreviewIndex: 0,
-        templateUrl: null,
-        noSeri: "",
-        kode: "",
-        bulan: "",
-        tahun: "",
-        lokasi: "",
-        hari: "",
-        tema: ""
-    };
+        // Sembunyikan halaman aplikasi & preview
+        app.classList.add('hidden');
+        preview.classList.add('hidden');
+        landing.classList.remove('hidden');
 
-    // Reset checkbox peserta
-    document.querySelectorAll('.peserta-check').forEach(cb => cb.checked = false);
+        // Reset login form
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        document.getElementById('loginError').classList.add('hidden');
 
-    // Reset background sertifikat
-    const bg = document.getElementById('bg-image-preview');
-    bg.src = "";
-    bg.classList.add('hidden');
+        // Reset state aplikasi
+        appState = {
+            selectedPeserta: [],
+            currentPreviewIndex: 0,
+            templateUrl: null,
+            noSeri: "", kode: "", bulan: "", tahun: "", lokasi: "", hari: "", tema: ""
+        };
 
-    updatePreview();
+        // Reset checkbox peserta
+        document.querySelectorAll('.peserta-check').forEach(cb => cb.checked = false);
+
+        // Reset background sertifikat
+        const bg = document.getElementById('bg-image-preview');
+        bg.src = "";
+        bg.classList.add('hidden');
+
+        updatePreview();
+
+        // 3. SEMBUNYIKAN LOADER
+        loader.classList.add('hidden');
+        
+    }, 2500); // Angka 2500 = 2.5 detik
 }
 
         function resetSelection() {
@@ -676,6 +692,14 @@ function formatNameWithDegrees(fullName) {
             link.click();
             btn.innerText = originalText; btn.disabled = false;
         }
+        
     </script>
+            <div id="global-loader" class="fixed inset-0 bg-black/90 z-[100] hidden flex flex-col items-center justify-center transition-opacity duration-300">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-6 shadow-[0_0_20px_rgba(59,130,246,0.5)]"></div>
+    
+    <p id="loader-text" class="text-white text-2xl font-bold tracking-wider animate-pulse text-center">
+        Memuat...
+    </p>
+</div>
 </body>
 </html>
