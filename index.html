@@ -59,19 +59,27 @@
             margin: 10px 0;
         }
 
-        .narrative {
-            text-align: justify;
-            width: 90%;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            /* Had ketinggian narasi diperketat agar tidak menolak bahagian pengesahan */
-            max-height: 220px; 
-            overflow: hidden;
-            margin-top: 5px;
-            box-sizing: border-box;
-        }
+.narrative {
+    text-align: justify;
+    width: 90%;
+    font-weight: bold;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    
+    /* 1. Beri ruang lebih tinggi agar ekor huruf tidak terpotong */
+    max-height: 260px; 
+    
+    /* 2. KUNCI ANTI-GEPENG: Mencegah narasi menyusut saat footer naik */
+    flex-shrink: 0;    
+    
+    /* Opsional: padding bawah untuk keamanan ekstra */
+    padding-bottom: 5px;
+
+    overflow: hidden;
+    margin-top: 5px;
+    box-sizing: border-box;
+}
 
         @media (max-width: 1200px) {
             .preview-wrapper {
@@ -90,6 +98,17 @@
                 margin-bottom: -500px;
             }
         }
+
+        .ttd-guru {
+    position: absolute; /* KUNCI: Melayang, tidak mendorong elemen lain */
+    width: 850px;       /* Atur besar kecilnya di sini (bisa 300px - 400px) */
+    height: auto;
+    left: 50%;          /* Titik tengah horizontal */
+    top: 50%;           /* Titik tengah vertikal */
+    transform: translate(-50%, -50%); /* Trik agar gambar benar-benar senter di titik tengah */
+    z-index: 30;        /* Pastikan di atas stempel (stempel z-20) */
+    pointer-events: none; /* Agar aman tidak terklik */
+}
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -279,19 +298,25 @@ class="preview-wrapper py-10 flex justify-center bg-gray-600 rounded-xl min-h-[8
                         </div>
 
                         <!-- Pengesahan (Raised position) -->
-                        <div class="flex flex-col items-center text-center w-full">
-                            <p class="font-bold uppercase">BALIKPAPAN, <span id="view-tanggal-footer">...</span></p>
-                            <p class="font-bold uppercase leading-tight">KETUA KOMUNITAS BELAJAR</p>
-                            <p class="font-bold uppercase leading-tight">MGBK SMP</p>
-                            
-                            <div class="relative h-24 w-64 my-1 flex items-center justify-center">
-                                <img src="https://i.postimg.cc/MnWcJXnD/STEMPEL-MGBK.png" 
-                                     class="absolute left-[-95px] top-[-50px] w-48 opacity-90 z-20 pointer-events-none" alt="Stempel">
-                                <img src="https://i.postimg.cc/prCkYp0f/photo_6336577844540018064_y.png" class="w-36 z-10" alt="Tanda Tangan">
-                            </div>
-                            
-                            <p class="font-bold text-xl">Gr. GALIH ATMAJI</p>
-                        </div>
+<div class="flex flex-col items-center text-center w-full mb-8">
+
+    <p class="font-bold uppercase">BALIKPAPAN, <span id="view-tanggal-footer">...</span></p>
+    <p class="font-bold uppercase leading-tight">KETUA MGBK SMP</p>
+    
+    <div class="relative h-24 w-[600px] my-2 flex items-center justify-center"> 
+        
+        <img src="https://i.postimg.cc/MnWcJXnD/STEMPEL-MGBK.png" 
+             class="absolute left-[40px] top-[-60px] w-48 opacity-90 z-20 pointer-events-none" 
+             alt="Stempel">
+             
+        <img src="https://i.postimg.cc/prCkYp0f/photo_6336577844540018064_y.png" 
+             class="ttd-guru" 
+             alt="Tanda Tangan">      
+    </div>
+    
+    <p class="font-bold text-xl -mt-6 relative z-40">Gr. GALIH ATMAJI</p>
+</div>
+                  
                     </div>
                 </div>
             </div>
