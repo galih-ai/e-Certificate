@@ -678,44 +678,110 @@ function formatNameWithDegrees(fullName) {
             btn.innerText = originalText; btn.disabled = false;
         }
 
-        async function downloadAll() {
-            if (appState.selectedPeserta.length === 0) { alert("Pilih minimal satu peserta!"); return; }
-            const btn = event.target;
-            const originalText = btn.innerText;
-            btn.innerText = "ZIP diproses..."; btn.disabled = true;
-            const zip = new JSZip();
+async function downloadAll() {
+    const selected = appState.selectedPeserta;
+    if (selected.length === 0) { 
+        alert("Pilih minimal satu peserta!");
+        return; 
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerText;
+    const initialIndex = appState.currentPreviewIndex; 
+    
+    // --- PENGATURAN BATAS MEMORI ---
+    // Kita pecah setiap 50 sertifikat agar Browser tidak Crash
+    const BATCH_SIZE = 50; 
+    
+    let zip = new JSZip();
+    let batchCounter = 1;
+
+    try {
+        for (let i = 0; i < selected.length; i++) {
+            // Update status di tombol
+            btn.innerText = `Memproses ${i + 1} dari ${selected.length}...`;
+            btn.disabled = true;
+
+            // Render Preview
+            appState.currentPreviewIndex = i;
+            updatePreview();
+
+            // Jeda napas untuk browser (Penting!)
+            await new Promise(r => setTimeout(r, 500));
+
             const element = document.getElementById('certificate-preview');
 
-            for (let i = 0; i < appState.selectedPeserta.length; i++) {
-                const oldIdx = appState.currentPreviewIndex;
-                appState.currentPreviewIndex = i;
-                updatePreview();
-                await new Promise(r => setTimeout(r, 500));
+            // 1. OPTIMASI MEMORI: Gunakan scale 2 (sudah cukup tajam)
+            const canvas = await html2canvas(element, { 
+                width: 1123, height: 794, scale: 2, 
+                useCORS: true, backgroundColor: "#FFFFFF", logging: false,
+                onclone: (cloned) => {
+                    const el = cloned.getElementById('certificate-preview');
+                    el.style.transform = 'none'; el.style.margin = '0'; el.style.boxShadow = 'none';
+                }
+            });
 
-                const canvas = await html2canvas(element, { 
-                    width: 1123, height: 794, scale: 3, useCORS: true, backgroundColor: "#FFFFFF",
-                    onclone: (cloned) => {
-                        const el = cloned.getElementById('certificate-preview');
-                        el.style.transform = 'none'; el.style.margin = '0'; el.style.boxShadow = 'none';
-                    }
-                });
-                const img = canvas.toDataURL('image/png');
-                const pdf = new jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1123, 794] });
-                pdf.addImage(img, 'PNG', 0, 0, 1123, 794);
+            // 2. RAHASIA ANTI-CRASH: Gunakan JPEG (bukan PNG) untuk menghemat RAM 70%
+            const imgData = canvas.toDataURL('image/jpeg', 0.8); 
+            
+            const pdf = new jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1123, 794] });
+            pdf.addImage(imgData, 'JPEG', 0, 0, 1123, 794);
+
+            const person = selected[i];
+            const safeName = person.nama.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            const safeSekolah = person.sekolah.replace(/[^a-zA-Z0-9 ]/g, "").trim();
+            
+            // Masukkan ke ZIP saat ini
+            zip.file(`${safeSekolah}_${safeName}.pdf`, pdf.output('blob'));
+
+            // Bersihkan memori canvas segera
+            canvas.remove();
+
+            // --- LOGIKA SMART SPLIT (OTOMATIS DOWNLOAD PER 50 FILE) ---
+            const isLastItem = (i === selected.length - 1);
+            const isBatchFull = ((i + 1) % BATCH_SIZE === 0);
+
+            if (isBatchFull || isLastItem) {
+                btn.innerText = `Mengunduh Bagian ${batchCounter}...`;
                 
-                const person = appState.selectedPeserta[i];
-                zip.file(`e-Certificate_MGBK_${person.sekolah}_${person.nama}.pdf`.replace(/\//g, '-'), pdf.output('blob'));
-                appState.currentPreviewIndex = oldIdx;
-                updatePreview();
-            }
+                // Generate ZIP bagian ini
+                const content = await zip.generateAsync({type:"blob"});
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                
+                // Nama file: Part_1, Part_2, dst.
+                link.download = `Sertifikat_MGBK_Part${batchCounter}_(${appState.tahun || '2026'}).zip`;
+                link.click();
 
-            const content = await zip.generateAsync({type:"blob"});
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = `e-Certificate_MGBK_${appState.tahun || '2026'}.zip`;
-            link.click();
-            btn.innerText = originalText; btn.disabled = false;
+                // Tunggu sebentar agar download dimulai sebelum memori dibersihkan
+                await new Promise(r => setTimeout(r, 2000));
+                
+                // Bersihkan URL object
+                URL.revokeObjectURL(link.href);
+
+                // RESET ZIP & MEMORI UNTUK BAGIAN SELANJUTNYA
+                zip = new JSZip(); 
+                batchCounter++;
+                
+                if (!isLastItem) {
+                    // Beritahu user kita lanjut ke batch berikutnya
+                    console.log("Melanjutkan ke batch berikutnya...");
+                }
+            }
         }
+
+        alert("Semua proses selesai! Cek folder download Anda.");
+
+    } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan: " + err.message);
+    } finally {
+        btn.innerText = originalText; 
+        btn.disabled = false;
+        appState.currentPreviewIndex = initialIndex;
+        updatePreview();
+    }
+}
         
         // --- FITUR BARU: Fungsi Pencarian ---
 function filterPeserta() {
